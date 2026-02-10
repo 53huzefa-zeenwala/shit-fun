@@ -401,18 +401,18 @@
       // ─── Sequential "No" dialog messages ───────────────────────────────────
       // Index 0 = 1st click, Index 1 = 2nd click, Index 2+ = 3rd click onwards
       const noMessages = [
-        { emoji: "😶", text: "Pakku 😶" },
-        { emoji: "🤔", text: "Pacho sochi lo 🤔" },
-        { emoji: "🤔", text: "Pacho sochi lo 🤔" }, // 3rd click repeats last
+        "Pakku 😶",
+        "Pacho sochi lo 🤔",
+        "Where is your generousity ? ",
+        "Please click on yes 🥹🥹",
       ];
 
       let noClickCount = 0;
 
       function getNoMessage() {
-        if (noClickCount <= 0) return noMessages[0];
-        if (noClickCount === 1) return noMessages[1];
-        // 3rd click and beyond: repeat "Pacho sochi lo 🤔"
-        return noMessages[2];
+        const isgreater = noClickCount > noMessages.length;
+
+        return noMessages[isgreater ? noMessages.length - 1 : noClickCount];
       }
       // ───────────────────────────────────────────────────────────────────────
 
@@ -596,8 +596,7 @@
         overlay.className = "dialog-overlay";
         overlay.innerHTML = `
           <div class="sad-dialog">
-            <div class="sad-emoji">${msg.emoji}</div>
-            <div class="sad-text">${msg.text}</div>
+            <div class="sad-text">${msg}</div>
             <button class="hmm-btn" id="hmmBtn">Hmm..</button>
           </div>
         `;
