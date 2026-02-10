@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Be My Valentine 💖</title>
 
-    <!-- Load Poppins Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -30,7 +29,6 @@
         position: relative;
       }
 
-      /* Floating hearts background */
       .heart-bg {
         position: absolute;
         font-size: 20px;
@@ -185,7 +183,6 @@
         background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
       }
 
-      /* When No button is escaping */
       .no.escaping {
         position: absolute !important;
         transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
@@ -226,7 +223,6 @@
         animation: fadeIn 0.8s ease-out 0.9s both;
       }
 
-      /* Success screen animations */
       .success-popup {
         animation: successPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
       }
@@ -267,26 +263,22 @@
         .popup {
           padding: 35px 25px 30px;
         }
-
         .emoji {
           font-size: 60px;
         }
-
         h2 {
           font-size: 22px;
         }
-
         .buttons {
           height: 120px;
         }
-
         button {
           padding: 13px 30px;
           font-size: 16px;
         }
       }
 
-      /* Sad Dialog Overlay */
+      /* Dialog Overlay */
       .dialog-overlay {
         position: fixed;
         top: 0;
@@ -356,6 +348,7 @@
         color: #ff4d88;
         font-weight: 600;
         margin: 10px 0 25px;
+        line-height: 1.4;
       }
 
       .hmm-btn {
@@ -405,7 +398,25 @@
       let isEscaping = false;
       let lastMoveTime = 0;
 
-      // Create floating hearts background
+      // ─── Sequential "No" dialog messages ───────────────────────────────────
+      // Index 0 = 1st click, Index 1 = 2nd click, Index 2+ = 3rd click onwards
+      const noMessages = [
+        { emoji: "😶", text: "Pakku 😶" },
+        { emoji: "🤔", text: "Pacho sochi lo 🤔" },
+        { emoji: "🤔", text: "Pacho sochi lo 🤔" }, // 3rd click repeats last
+      ];
+
+      let noClickCount = 0;
+
+      function getNoMessage() {
+        if (noClickCount <= 0) return noMessages[0];
+        if (noClickCount === 1) return noMessages[1];
+        // 3rd click and beyond: repeat "Pacho sochi lo 🤔"
+        return noMessages[2];
+      }
+      // ───────────────────────────────────────────────────────────────────────
+
+      // Floating hearts background
       function createFloatingHearts() {
         const hearts = ["💕", "💖", "💗", "💝", "💞"];
         for (let i = 0; i < 15; i++) {
@@ -429,36 +440,24 @@
       }
 
       function updateCounter() {
-        if (attempts === 0) {
-          counter.textContent = "";
-        } else if (attempts < 5) {
-          counter.textContent = `Nice try! 😏`;
-        } else if (attempts < 10) {
-          counter.textContent = `You're persistent! 😄`;
-        } else {
-          counter.textContent = `Still going? 🤭`;
-        }
+        if (attempts === 0) counter.textContent = "";
+        else if (attempts < 5) counter.textContent = `Nice try! 😏`;
+        else if (attempts < 10) counter.textContent = `You're persistent! 😄`;
+        else counter.textContent = `Still going? 🤭`;
       }
 
       function getButtonCenter(btn) {
         const rect = btn.getBoundingClientRect();
-        return {
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2,
-        };
+        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
       }
 
       function moveNoButton(cursorX, cursorY) {
-        // Prevent too frequent moves
         const now = Date.now();
-        if (now - lastMoveTime < 200) {
-          return;
-        }
+        if (now - lastMoveTime < 200) return;
         lastMoveTime = now;
 
         attempts++;
 
-        // Add escaping class and shake
         if (!isEscaping) {
           noBtn.classList.add("escaping");
           isEscaping = true;
@@ -477,67 +476,42 @@
         const maxX = areaRect.width - btnRect.width - padding;
         const maxY = areaRect.height - btnRect.height - padding;
 
-        // Define all 4 corners
         const corners = [
-          { x: padding, y: padding }, // Top-left
-          { x: maxX, y: padding }, // Top-right
-          { x: padding, y: maxY }, // Bottom-left
-          { x: maxX, y: maxY }, // Bottom-right
+          { x: padding, y: padding },
+          { x: maxX, y: padding },
+          { x: padding, y: maxY },
+          { x: maxX, y: maxY },
         ];
 
-        // Find the best corner: farthest from both cursor and Yes button
         let bestCorner = corners[0];
         let bestScore = -Infinity;
 
         corners.forEach((corner) => {
-          const cornerCenterX = corner.x + btnRect.width / 2;
-          const cornerCenterY = corner.y + btnRect.height / 2;
-
-          // Convert to absolute coordinates
-          const absoluteX = areaRect.left + cornerCenterX;
-          const absoluteY = areaRect.top + cornerCenterY;
-
-          // Distance from cursor (farther is better)
-          const distFromCursor = getDistance(
-            cursorX,
-            cursorY,
-            absoluteX,
-            absoluteY,
-          );
-
-          // Distance from Yes button (farther is better)
-          const distFromYes = getDistance(
-            yesCenter.x,
-            yesCenter.y,
-            absoluteX,
-            absoluteY,
-          );
-
-          // Calculate score
+          const cx = corner.x + btnRect.width / 2;
+          const cy = corner.y + btnRect.height / 2;
+          const absX = areaRect.left + cx;
+          const absY = areaRect.top + cy;
+          const distFromCursor = getDistance(cursorX, cursorY, absX, absY);
+          const distFromYes = getDistance(yesCenter.x, yesCenter.y, absX, absY);
           const score = distFromCursor * 0.7 + distFromYes * 0.3;
-
           if (score > bestScore) {
             bestScore = score;
             bestCorner = corner;
           }
         });
 
-        // Move to the chosen corner
         noBtn.style.left = `${bestCorner.x}px`;
         noBtn.style.top = `${bestCorner.y}px`;
       }
 
-      // Desktop: detect cursor proximity
+      // Desktop: cursor proximity
       let checkInterval;
 
       area.addEventListener("mouseenter", () => {
         checkInterval = setInterval(() => {
           if (!isEscaping) return;
-
-          // Keep checking if cursor is near
           const event = window.lastMouseEvent;
           if (!event) return;
-
           const btnCenter = getButtonCenter(noBtn);
           const dist = getDistance(
             event.clientX,
@@ -545,62 +519,32 @@
             btnCenter.x,
             btnCenter.y,
           );
-
-          const triggerDist = 90 + attempts * 3;
-          if (dist < triggerDist) {
+          if (dist < 90 + attempts * 3)
             moveNoButton(event.clientX, event.clientY);
-          }
         }, 100);
       });
 
       area.addEventListener("mouseleave", () => {
-        if (checkInterval) {
-          clearInterval(checkInterval);
-        }
+        if (checkInterval) clearInterval(checkInterval);
       });
 
-      // Track mouse position
       area.addEventListener("mousemove", (e) => {
         window.lastMouseEvent = e;
-
-        if (isEscaping) {
-          const btnCenter = getButtonCenter(noBtn);
-          const distance = getDistance(
-            e.clientX,
-            e.clientY,
-            btnCenter.x,
-            btnCenter.y,
-          );
-
-          // Detection range increases with attempts
-          const triggerDistance = 90 + attempts * 3;
-
-          if (distance < triggerDistance) {
-            moveNoButton(e.clientX, e.clientY);
-          }
-        } else {
-          // First time - check if near No button
-          const btnCenter = getButtonCenter(noBtn);
-          const distance = getDistance(
-            e.clientX,
-            e.clientY,
-            btnCenter.x,
-            btnCenter.y,
-          );
-
-          if (distance < 80) {
-            moveNoButton(e.clientX, e.clientY);
-          }
-        }
+        const btnCenter = getButtonCenter(noBtn);
+        const distance = getDistance(
+          e.clientX,
+          e.clientY,
+          btnCenter.x,
+          btnCenter.y,
+        );
+        const triggerDistance = isEscaping ? 90 + attempts * 3 : 80;
+        if (distance < triggerDistance) moveNoButton(e.clientX, e.clientY);
       });
 
       // Mobile: touch support
-      let touchCheckInterval;
-
       area.addEventListener("touchstart", (e) => {
         const touch = e.touches[0];
         window.lastTouchEvent = touch;
-
         const btnCenter = getButtonCenter(noBtn);
         const distance = getDistance(
           touch.clientX,
@@ -608,9 +552,7 @@
           btnCenter.x,
           btnCenter.y,
         );
-
         const triggerDistance = isEscaping ? 100 + attempts * 3 : 90;
-
         if (distance < triggerDistance) {
           e.preventDefault();
           moveNoButton(touch.clientX, touch.clientY);
@@ -620,7 +562,6 @@
       area.addEventListener("touchmove", (e) => {
         const touch = e.touches[0];
         window.lastTouchEvent = touch;
-
         if (isEscaping) {
           const btnCenter = getButtonCenter(noBtn);
           const distance = getDistance(
@@ -629,108 +570,95 @@
             btnCenter.x,
             btnCenter.y,
           );
-
-          const triggerDistance = 100 + attempts * 3;
-
-          if (distance < triggerDistance) {
+          if (distance < 100 + attempts * 3) {
             e.preventDefault();
             moveNoButton(touch.clientX, touch.clientY);
           }
         }
       });
 
-      // Prevent No button click
+      // No button click → show sequential dialog
       noBtn.addEventListener("click", (e) => {
         e.preventDefault();
-
-        // Show sad dialog
         showSadDialog();
       });
 
-      // Also prevent on touch
       noBtn.addEventListener("touchend", (e) => {
         e.preventDefault();
         showSadDialog();
       });
 
       function showSadDialog() {
-        // Create dialog overlay
+        const msg = getNoMessage();
+        noClickCount++; // increment AFTER reading so index aligns
+
         const overlay = document.createElement("div");
         overlay.className = "dialog-overlay";
         overlay.innerHTML = `
           <div class="sad-dialog">
-            <div class="sad-emoji">😢</div>
-            <div class="sad-text">Pacho Sochi lo</div>
-            <button class="hmm-btn" onclick="closeSadDialog()">Hmm..</button>
+            <div class="sad-emoji">${msg.emoji}</div>
+            <div class="sad-text">${msg.text}</div>
+            <button class="hmm-btn" id="hmmBtn">Hmm..</button>
           </div>
         `;
         document.body.appendChild(overlay);
 
-        // Add close function to window
-        window.closeSadDialog = function () {
-          overlay.style.animation = "fadeInOverlay 0.3s ease reverse";
-          setTimeout(() => {
-            overlay.remove();
-          }, 300);
-        };
-
-        // Close on overlay click (outside dialog)
+        overlay
+          .querySelector("#hmmBtn")
+          .addEventListener("click", () => closeSadDialog(overlay));
         overlay.addEventListener("click", (e) => {
-          if (e.target === overlay) {
-            window.closeSadDialog();
-          }
+          if (e.target === overlay) closeSadDialog(overlay);
         });
+      }
+
+      function closeSadDialog(overlay) {
+        overlay.style.animation = "fadeInOverlay 0.3s ease reverse";
+        setTimeout(() => overlay.remove(), 300);
       }
 
       function createCelebration() {
         const emojis = ["💕", "💖", "💗", "💝", "💞", "✨", "🎉", "💫"];
-
         for (let i = 0; i < 20; i++) {
           setTimeout(() => {
-            const celebration = document.createElement("div");
-            celebration.className = "celebration";
-            celebration.textContent =
-              emojis[Math.floor(Math.random() * emojis.length)];
-            celebration.style.left = Math.random() * 100 + "%";
-            celebration.style.animationDelay = Math.random() * 0.5 + "s";
-            document.body.appendChild(celebration);
-
-            setTimeout(() => celebration.remove(), 2000);
+            const cel = document.createElement("div");
+            cel.className = "celebration";
+            cel.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            cel.style.left = Math.random() * 100 + "%";
+            cel.style.animationDelay = Math.random() * 0.5 + "s";
+            document.body.appendChild(cel);
+            setTimeout(() => cel.remove(), 2000);
           }, i * 100);
         }
       }
 
       function sayYes() {
         createCelebration();
-
         setTimeout(() => {
           document.body.innerHTML = `
             <div style="
               height:100vh;
-              background:linear-gradient(135deg, #ffd9e8 0%, #ffc1d9 100%);
-              display:flex;
-              justify-content:center;
-              align-items:center;
-              text-align:center;
-              font-family:Poppins, sans-serif;
+              background:linear-gradient(135deg,#ffd9e8 0%,#ffc1d9 100%);
+              display:flex;justify-content:center;align-items:center;
+              text-align:center;font-family:Poppins,sans-serif;
             ">
               <div class="success-popup" style="
-                background:white;
-                padding:50px;
-                border-radius:30px;
+                background:white;padding:50px;border-radius:30px;
                 box-shadow:0 25px 50px rgba(255,77,136,.35);
-                max-width:420px;
-                width:92%;
+                max-width:420px;width:92%;
               ">
                 <div style="font-size:80px;animation:float 2s ease-in-out infinite;">🥰💖</div>
                 <h2 style="color:#ff4d88;font-size:28px;font-weight:700;margin:20px 0;">
-                  Yay! It's a Date 💕
+                  Yay! It's a Date Then ? 🤔
                 </h2>
                 <p style="color:#666;font-size:18px;margin:15px 0;">
                   I knew you'd say yes! 😊
                 </p>
                 <p style="color:#aaa;font-size:14px;margin-top:25px;font-style:italic;">
-                  ${attempts > 0 ? `(After ${attempts} attempt${attempts > 1 ? "s" : ""} to catch "No"! 😄)` : "(And you said yes right away! 💖)"}
+                  ${
+                    attempts > 0
+                      ? `(After ${attempts} attempt${attempts > 1 ? "s" : ""} to catch "No"! 😄)`
+                      : ""
+                  }
                 </p>
               </div>
             </div>
